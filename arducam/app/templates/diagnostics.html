@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .dashboard-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        .progress-card {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+        }
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #007bff;
+        }
+        .camera-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .camera-count {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-top: 3px solid #28a745;
+        }
+        .image-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .image-preview {
+            aspect-ratio: 1;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            position: relative;
+            background: #f8f9fa;
+        }
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        .image-preview:hover img {
+            transform: scale(1.05);
+        }
+        .image-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px;
+            font-size: 12px;
+            text-align: center;
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .progress-ring-circle {
+            stroke-dasharray: 283;
+            stroke-dashoffset: 283;
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .status-active {
+            background: #28a745;
+            color: white;
+        }
+        .status-inactive {
+            background: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Add Back to Home button -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center gap-4">
+                <a href="/" class="btn btn-outline-secondary btn-sm" style="box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Home
+                </a>
+                <h1 class="mb-0"><i class="fas fa-chart-line me-3"></i>Diagnostics Dashboard</h1>
+            </div>
+            <span id="statusBadge" class="status-badge status-inactive">Inactive</span>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="progress-card">
+                    <div class="d-flex justify-content-center mb-3">
+                        <svg width="120" height="120" class="progress-ring">
+                            <circle cx="60" cy="60" r="45" stroke="#ffffff40" stroke-width="8" fill="transparent"></circle>
+                            <circle id="progressCircle" cx="60" cy="60" r="45" stroke="white" stroke-width="8" fill="transparent" class="progress-ring-circle"></circle>
+                        </svg>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                            <h2 id="progressPercentage" style="margin: 0; font-size: 24px;">0%</h2>
+                        </div>
+                    </div>
+                    <h4>Scan Progress</h4>
+                    <p id="progressSteps" class="mb-0">0 / 24000 steps</p>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="stats-card">
+                    <h5><i class="fas fa-camera me-2"></i>Expected Images per Camera</h5>
+                    <h2 id="expectedImages" class="text-primary">0</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Counts -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h4><i class="fas fa-images me-2"></i>Images per Camera</h4>
+                <div class="camera-grid">
+                    <div class="camera-count">
+                        <h6>Camera 1</h6>
+                        <h3 id="cam1Count" class="text-success">0</h3>
+                    </div>
+                    <div class="camera-count">
+                        <h6>Camera 2</h6>
+                        <h3 id="cam2Count" class="text-success">0</h3>
+                    </div>
+                    <div class="camera-count">
+                        <h6>Camera 3</h6>
+                        <h3 id="cam3Count" class="text-success">0</h3>
+                    </div>
+                    <div class="camera-count">
+                        <h6>Camera 4</h6>
+                        <h3 id="cam4Count" class="text-success">0</h3>
+                    </div>
+                    <div class="camera-count">
+                        <h6>Camera 5</h6>
+                        <h3 id="cam5Count" class="text-success">0</h3>
+                    </div>
+                    <div class="camera-count">
+                        <h6>Camera 6</h6>
+                        <h3 id="cam6Count" class="text-success">0</h3>
+                    </div>
+                    <div class="camera-count">
+                        <h6>Camera 7</h6>
+                        <h3 id="cam7Count" class="text-success">0</h3>
+                    </div>
+                    <div class="camera-count">
+                        <h6>Camera 8</h6>
+                        <h3 id="cam8Count" class="text-success">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Latest Images Preview -->
+        <div class="row">
+            <div class="col-12">
+                <h4><i class="fas fa-image me-2"></i>Latest Images</h4>
+                <div id="imagePreviewGrid" class="image-preview-grid">
+                    <!-- Images will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Last Updated -->
+        <div class="text-center mt-4">
+            <small class="text-muted">Last updated: <span id="lastUpdated">Never</span></small>
+        </div>
+    </div>
+
+    <script>
+        function updateProgressRing(percentage) {
+            const circle = document.getElementById('progressCircle');
+            const circumference = 2 * Math.PI * 45;
+            const offset = circumference - (percentage / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        function updateDashboard() {
+            fetch('/diagnostics_data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        return;
+                    }
+
+                    // Update status badge
+                    const statusBadge = document.getElementById('statusBadge');
+                    if (data.scan_in_progress) {
+                        statusBadge.textContent = 'Active';
+                        statusBadge.className = 'status-badge status-active';
+                    } else {
+                        statusBadge.textContent = 'Inactive';
+                        statusBadge.className = 'status-badge status-inactive';
+                    }
+
+                    // Update progress
+                    document.getElementById('progressPercentage').textContent = data.progress_percentage + '%';
+                    document.getElementById('progressSteps').textContent = `${data.step_counter} / ${data.total_steps} steps`;
+                    updateProgressRing(data.progress_percentage);
+
+                    // Update expected images
+                    document.getElementById('expectedImages').textContent = data.images_per_camera_expected;
+
+                    // Update camera counts
+                    for (let i = 1; i <= 8; i++) {
+                        const count = data.image_counts[`cam${i}`] || 0;
+                        document.getElementById(`cam${i}Count`).textContent = count;
+                    }
+
+                    // Update latest images
+                    const imageGrid = document.getElementById('imagePreviewGrid');
+                    imageGrid.innerHTML = '';
+                    
+                    if (data.latest_images && data.latest_images.length > 0) {
+                        data.latest_images.forEach((imageName, index) => {
+                            if (index < 8) { // Limit to 8 images
+                                const imageDiv = document.createElement('div');
+                                imageDiv.className = 'image-preview';
+                                
+                                const img = document.createElement('img');
+                                img.src = `/static/captures/${imageName}`;
+                                img.alt = imageName;
+                                img.onerror = function() {
+                                    this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
+                                };
+                                
+                                const label = document.createElement('div');
+                                label.className = 'image-label';
+                                label.textContent = imageName.replace('.jpg', '');
+                                
+                                imageDiv.appendChild(img);
+                                imageDiv.appendChild(label);
+                                imageGrid.appendChild(imageDiv);
+                            }
+                        });
+                    } else {
+                        imageGrid.innerHTML = '<div class="col-span-4 text-center text-muted" style="grid-column: 1 / -1; padding: 40px;">No images available</div>';
+                    }
+
+                    // Update last updated time
+                    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+                })
+                .catch(error => {
+                    console.error('Error fetching diagnostics data:', error);
+                });
+        }
+
+        // Update dashboard on load
+        updateDashboard();
+
+        // Auto-refresh every 3 seconds
+        setInterval(updateDashboard, 3000);
+    </script>
+</body>
+</html> 

@@ -1,0 +1,686 @@
+{% extends 'layout.html' %}
+
+{% block title %}3D Camera{% endblock %}
+
+{% block content %}
+
+<div class="d-grid gap-2 col-6 mx-auto" style="padding: 15px;">
+    <button id="captureImages" type="button" class="btn btn-primary" 
+            style="box-shadow: 0 8px 16px rgba(0,0,0,0.2);" 
+            onclick="captureImages()">
+        <i class="fas fa-camera me-2"></i>
+        Capture From MAIN Cameras
+    </button>
+</div>
+
+<div class="d-grid gap-2 col-6 mx-auto" style="padding: 15px;">
+    <button id="captureRemoteImages" type="button" class="btn btn-primary" 
+            style="box-shadow: 0 8px 16px rgba(0,0,0,0.2);" 
+            onclick="captureRemoteImages()">
+        <i class="fas fa-camera me-2"></i>
+        Capture From REMOTE Cameras
+    </button>
+</div>
+
+<div class="d-grid gap-2 col-6 mx-auto" style="padding: 15px;">
+    <button id="rotateCarouselOneStep" class="btn btn-primary" 
+            style="box-shadow: 0 8px 16px rgba(0,0,0,0.2);"
+            onclick="rotateCarouselOneStep(0)">
+        <i class="fas fa-sync me-2"></i>
+        Rotate Carousel 1 Step
+    </button>
+</div>
+
+<div class="d-grid gap-2 col-6 mx-auto" style="padding: 15px;">
+    <div class="d-flex gap-2">
+        <button id="resetCarousel" class="btn btn-secondary flex-fill"
+                style="box-shadow: 0 8px 16px rgba(0,0,0,0.2);"
+                onclick="startResetCarousel()">
+            <i class="fas fa-sync me-2"></i>
+            Reset Carousel
+        </button>
+        <button id="stopResetCarousel" class="btn btn-danger"
+                style="box-shadow: 0 8px 16px rgba(0,0,0,0.2); display:none;"
+                onclick="stopResetCarousel()">
+            <i class="fas fa-stop me-2"></i>
+            Stop
+        </button>
+    </div>
+</div>
+
+<!-- USB Status Indicator -->
+<div class="d-grid gap-2 col-6 mx-auto" style="padding: 15px;">
+    <div class="alert alert-info" id="usbStatus">
+        <i class="fas fa-usb me-2"></i>
+        <span id="usbStatusText">Checking USB drive...</span>
+        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="checkUsbStatus()">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+</div>
+
+<div class="d-grid gap-2 col-6 mx-auto" style="padding: 15px;">
+    <button id="rotateCarouselGo" class="btn btn-danger" 
+            style="box-shadow: 0 8px 16px rgba(0,0,0,0.2);"
+            onclick="rotateCarousel()">
+        <i class="fas fa-sync me-2"></i>
+        Run It!!
+    </button>
+</div>
+
+<div class="d-grid gap-2 col-6 mx-auto" style="padding: 15px;">
+    <button id="recordVideoCam1" class="btn btn-danger 
+            style="box-shadow: 0 8px 16px rgba(0,0,0,0.2);"
+            onclick="recordVideoCam1()">
+        <i class="fas fa-sync me-2"></i>
+        Record Camera 1
+    </button>
+</div>
+
+<div class="d-grid gap-2 col-6 mx-auto" style="padding: 15px;">
+    <button id="soundBuzzer" class="btn btn-secondary 
+            style="box-shadow: 0 8px 16px rgba(0,0,0,0.2);"
+            onclick="soundBuzzer()">
+        <i class="fas fa-sync me-2"></i>
+        Test Buzzer
+    </button>
+</div>
+
+<div class="d-grid gap-2 col-6 mx-auto" style="padding: 15px;">
+    <button id="openModal" class="btn btn-primary" 
+            style="box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
+        <i class="fas fa-download me-2"></i>
+        Download Images
+    </button>
+</div>
+
+<div class="d-grid gap-2 col-6 mx-auto" style="padding: 15px;">
+    <button id="diagnosticsBtn" class="btn btn-info" 
+            style="box-shadow: 0 8px 16px rgba(0,0,0,0.2);"
+            onclick="openDiagnostics()">
+        <i class="fas fa-chart-line me-2"></i>
+        Diagnostics
+    </button>
+</div>
+
+
+<div id="modal" style="display:none; box-shadow: 0 8px 16px rgba(0,0,0,0.2); padding: 20px; margin-bottom: 40px; position: relative; top:-465px; background-color: white;">
+    <div class="position-relative">
+        <!-- Close Icon -->
+        <button id="modalCloseIcon" class="btn-close position-absolute top-0 end-0" style="padding: 10px; cursor: pointer;" aria-label="Close"></button>
+        
+        <h2>Select Images</h2>
+        <div id="fileListContainer" class="border rounded p-3 mb-3" style="height: 300px; overflow-y: auto;">
+            <div id="fileList"></div>
+        </div>
+        <div class="form-check mb-3">
+            <input type="checkbox" id="selectAll" class="form-check-input">
+            <label for="selectAll" class="form-check-label">Select All</label>
+            <span id="selectedCount" class="ms-2">(0 selected)</span>
+        </div>        
+
+        <div id="thumbdriveMessage" class="alert alert-warning d-none" role="alert">
+            Please insert a thumb drive to proceed.
+        </div>
+
+        <h3>Select USB Drive</h3>
+        <select id="usbDrives" class="form-select mb-3"></select>
+
+        <!-- Progress Bar -->
+        <div id="progress-container" style="visibility: hidden; margin-top: 20px;">
+            <div id="progress-bar-container" style="width: 100%; background-color: #e0e0e0; border-radius: 10px; height: 20px;">
+                <div id="progress-bar" style="width: 0%; height: 100%; background-color: #4caf50; border-radius: 10px;"></div>
+            </div>
+            <p id="progress-text" style="margin-top: 5px;">0%</p>
+        </div>
+
+        <!-- Message Container -->
+        <p id="message" style="margin-top: 10px;"></p>
+
+        <button id="deleteSelected" class="btn btn-danger">Delete Selected</button>
+        <button id="downloadSelected" class="btn btn-success">Download Selected</button>
+        <div class="form-check mb-3">
+            <input type="checkbox" id="deleteAfterDownload" class="form-check-input">
+            <label for="deleteAfterDownload" class="form-check-label">Delete after download</label>
+        </div>
+
+        <div id="message"></div>
+        <button id="closeModal" class="btn btn-secondary">Close</button>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // Check USB status on page load
+        checkUsbStatus();
+        
+        // Open modal
+        $('#openModal').click(function() {
+            $('#modal').show();
+            loadFiles();
+            loadUsbDrives();
+            $("#deleteSelected, #downloadSelected").prop('disabled', true);
+        });
+
+        // Close modal
+        function closeModal() {
+            $('#modal').hide();
+        }
+
+        $('#closeModal').click(closeModal);
+        $('#modalCloseIcon').click(closeModal);
+
+        $(document).mouseup(function(e) {
+            let modal = $("#modal");
+            
+            // Check if the click is outside the modal
+            if (!modal.is(e.target) && modal.has(e.target).length === 0) {
+                closeModal();
+            }
+        });
+
+        function updateSelectedCount() {
+            const selectedCount = $(".fileCheckbox:checked").length;
+            $("#selectedCount").text(`(${selectedCount} selected)`);
+        }
+
+        function toggleButtons() {
+            const hasSelection = $(".fileCheckbox:checked").length > 0;
+            $("#deleteSelected, #downloadSelected").prop('disabled', !hasSelection);
+            updateSelectedCount();
+        }
+
+        // Load files
+        function loadFiles() {
+            $.get("/list_images", function (data) {
+                let fileList = $("#fileList");
+                fileList.empty();
+                data.forEach((file) => {
+                    fileList.append(
+                        `<div class="form-check">
+                            <input type="checkbox" class="form-check-input fileCheckbox" value="${file}" id="${file}">
+                            <label class="form-check-label" for="${file}">${file}</label>
+                        </div>`
+                    );
+                });
+
+                // Attach change event to checkboxes after loading files
+                $(".fileCheckbox").change(toggleButtons);
+                toggleButtons();
+            });
+
+            // Disable buttons initially
+            $("#deleteSelected, #downloadSelected").prop('disabled', true);
+        }
+
+        // Load USB drives
+        function loadUsbDrives() {
+            $.get("/list_usb", function (data) {
+                let usbDrives = $("#usbDrives");
+                usbDrives.empty();
+
+                if (data.length === 0) {
+                    // No USB drives detected
+                    usbDrives.append('<option value="">No USB drives found</option>');
+                    $("#deleteSelected, #downloadSelected").prop('disabled', true);
+                    $("#thumbdriveMessage").removeClass("d-none"); // Show the message
+                } else {
+                    // USB drives detected
+                    data.forEach((drive) => {
+                        usbDrives.append(`<option value="${drive}">${drive}</option>`);
+                    });
+                    $("#deleteSelected, #downloadSelected").prop('disabled', false);
+                    $("#thumbdriveMessage").addClass("d-none"); // Hide the message
+                }
+            });
+        }
+
+        // Select all files
+        $("#selectAll").change(function() {
+            $(".fileCheckbox").prop('checked', $(this).prop('checked'));
+            toggleButtons();
+        });
+
+        // Delete selected files
+        $("#deleteSelected").click(function() {
+            let selectedFiles = $(".fileCheckbox:checked").map(function() {
+                return this.value;
+            }).get();
+
+            $.ajax({
+                url: "/delete_images",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ images: selectedFiles }),
+                success: function(response) {
+                    loadFiles();
+                    $("#message").text("Files deleted successfully.");
+                    $("#selectAll").prop("checked", false);
+                }
+            });
+        });
+
+        var socket = io();
+
+        socket.on('progress_update', function (data) {
+            let progress = data.progress;
+            $("#progress-bar").css("width", progress + "%");
+            $("#progress-text").text(progress + "%");
+
+
+            if (progress < 100) {
+                $("#message").text("Download in progress...");
+            } else {
+                $("#message").text("Download complete!");
+            }
+
+            // if (progress === 100) {
+            //     setTimeout(function() {
+            //         $("#progress-container").css("visibility", "hidden");
+            //     }, 2000);
+            // }
+        });
+
+        socket.on('progress_error', function (data) {
+            $("#message").text("Download failed: " + data.message);
+            //$("#progress-container").css("visibility", "hidden");
+        });
+
+        $("#downloadSelected").click(function() {
+            let selectedFiles = $(".fileCheckbox:checked").map(function() {
+                return this.value;
+            }).get();
+            let usbPath = $("#usbDrives").val();
+            let deleteAfter = $("#deleteAfterDownload").prop('checked');
+
+            if (selectedFiles.length === 0) {
+                $("#message").text("No files selected.");
+                return;
+            }
+
+            // Show the progress bar
+            $("#progress-container").css("visibility", "visible");
+            $("#progress-bar").css("width", "0%");
+            $("#progress-text").text("0%");
+
+            $.ajax({
+                url: "/download_images",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ images: selectedFiles, usb_path: usbPath, delete: deleteAfter }),
+                success: function(response) {
+                    $("#message").text("Download started...");
+                },
+                error: function(response) {
+                    $("#message").text("Download failed: " + response.responseJSON.message);
+                    $("#progress-container").css("visibility", "hidden");
+                }
+            });
+        });
+    });
+</script>
+
+<script>
+    function captureImages() {
+        const button = document.getElementById('captureImages');
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Capturing...';
+
+        fetch('/capture', {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success message
+                //alert('Images captured successfully!');
+            } else {
+                alert('Error capturing images: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error capturing images');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-camera me-2"></i>Capture From MAIN Cameras';
+        });
+    }
+
+    function captureRemoteImages() {
+        const button = document.getElementById('captureRemoteImages');
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Capturing...';
+
+        fetch('/captureRemote', {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success message
+                //alert('Images captured successfully!');
+            } else {
+                alert('Error capturing images: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error capturing images');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-camera me-2"></i>Capture From REMOTE Cameras';
+        });
+    }
+
+    function rotateCarouselOneStep(direction) {
+
+        const button = document.getElementById('rotateCarouselOneStep');
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Rotating...';
+
+        fetch('/rotateOneStep', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ direction: direction }) // Send direction as part of the request
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success message
+                //alert('Images captured successfully!');
+            } else {
+                alert('Error rotating carousel: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error rotating carousel');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-sync me-2"></i>Rotate Carousel 1 Step';
+        });
+    }
+
+    function startResetCarousel() {
+        const resetBtn = document.getElementById('resetCarousel');
+        const stopBtn  = document.getElementById('stopResetCarousel');
+
+        resetBtn.disabled = true;
+        resetBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Resetting...';
+        stopBtn.style.display = 'inline-block';
+
+        fetch('/resetCarousel', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({direction: 1})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status !== 'started') {
+                alert('Error starting reset: ' + data.message);
+                resetBtn.disabled = false;
+                resetBtn.innerHTML = '<i class="fas fa-sync me-2"></i>Reset Carousel';
+                stopBtn.style.display = 'none';
+            } else {
+                // Optionally poll status
+                monitorResetStatus();
+            }
+        });
+    }
+
+    function stopResetCarousel() {
+        const stopBtn  = document.getElementById('stopResetCarousel');
+        stopBtn.disabled = true;
+        stopBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Stopping...';
+
+        fetch('/stopReset', {method:'POST'})
+          .then(()=>{})
+          .finally(()=>{
+              // Wait a short time then refresh buttons
+              setTimeout(()=>{
+                  stopBtn.disabled=false;
+                  stopBtn.innerHTML='<i class="fas fa-stop me-2"></i>Stop';
+              }, 1000);
+          });
+    }
+
+    function monitorResetStatus() {
+        const resetBtn = document.getElementById('resetCarousel');
+        const stopBtn  = document.getElementById('stopResetCarousel');
+
+        const interval = setInterval(()=>{
+            fetch('/resetStatus').then(r=>r.json()).then(data=>{
+                if (!data.reset_in_progress) {
+                    clearInterval(interval);
+                    resetBtn.disabled = false;
+                    resetBtn.innerHTML = '<i class="fas fa-sync me-2"></i>Reset Carousel';
+                    stopBtn.style.display = 'none';
+                }
+            });
+        }, 1000);
+    }
+
+    function checkUsbStatus() {
+        fetch('/check_usb', {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+            const statusElement = document.getElementById('usbStatus');
+            const statusText = document.getElementById('usbStatusText');
+            
+            if (data.status === 'success') {
+                statusElement.className = 'alert alert-success';
+                const spaceGB = (data.available_space / (1024 * 1024 * 1024)).toFixed(1);
+                statusText.innerHTML = `USB drive ready (${spaceGB} GB available)`;
+            } else {
+                statusElement.className = 'alert alert-warning';
+                statusText.innerHTML = data.message;
+            }
+        })
+        .catch(error => {
+            console.error('Error checking USB status:', error);
+            const statusElement = document.getElementById('usbStatus');
+            const statusText = document.getElementById('usbStatusText');
+            statusElement.className = 'alert alert-danger';
+            statusText.innerHTML = 'Error checking USB drive';
+        });
+    }
+
+    function rotateCarousel() {
+        // First check if there are existing images
+        fetch('/check_existing_images')
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_images) {
+                // Show confirmation dialog about existing images
+                const confirmMessage = `Warning: There are ${data.count} existing image(s) on the Pi.\n\nWhat would you like to do?\n\nClick OK to clear all existing images and continue\nClick Cancel to abort`;
+                
+                if (confirm(confirmMessage)) {
+                    // User chose to clear images
+                    clearAllImagesAndProceed();
+                } else {
+                    // User cancelled
+                    return;
+                }
+            } else {
+                // No existing images, proceed normally
+                proceedWithScan();
+            }
+        })
+        .catch(error => {
+            console.error('Error checking existing images:', error);
+            // If check fails, ask user if they want to proceed anyway
+            if (confirm('Unable to check for existing images. Do you want to proceed anyway?')) {
+                proceedWithScan();
+            }
+        });
+    }
+
+    function clearAllImagesAndProceed() {
+        const button = document.getElementById('rotateCarouselGo');
+        const originalText = button.innerHTML;
+        
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Clearing images...';
+
+        fetch('/clear_all_images', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(`Successfully cleared ${data.deleted_count} image(s).`);
+                proceedWithScan();
+            } else {
+                alert('Error clearing images: ' + data.message);
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error clearing images:', error);
+            alert('Error clearing images');
+            button.disabled = false;
+            button.innerHTML = originalText;
+        });
+    }
+
+    function proceedWithScan() {
+        // Prompt for folder name
+        const folderName = prompt("Enter folder name for this scan:");
+        if (!folderName) {
+            const button = document.getElementById('rotateCarouselGo');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-sync me-2"></i>Run It!!';
+            return; // User cancelled
+        }
+        
+        // Validate folder name
+        const folderNameRegex = /^[a-zA-Z0-9_-]+$/;
+        if (!folderNameRegex.test(folderName) || folderName.length > 50) {
+            alert("Invalid folder name. Use only letters, numbers, and underscores (max 50 characters).");
+            const button = document.getElementById('rotateCarouselGo');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-sync me-2"></i>Run It!!';
+            return;
+        }
+
+        const button = document.getElementById('rotateCarouselGo');
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning...';
+
+        // Start progress monitoring
+        const progressInterval = setInterval(checkScanProgress, 2000);
+
+        fetch('/rotate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                step_counter_limit: 24000,
+                folder_name: folderName
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            clearInterval(progressInterval);
+            if (data.status === 'success') {
+                alert(`Scan completed successfully!\nImages saved to: ${data.scan_folder}`);
+            } else {
+                alert('Error during scan: ' + data.message);
+            }
+        })
+        .catch(error => {
+            clearInterval(progressInterval);
+            console.error('Error:', error);
+            alert('Error during scan');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-sync me-2"></i>Run It!!';
+        });
+    }
+
+    function checkScanProgress() {
+        fetch('/scan_status', {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.scan_in_progress) {
+                const button = document.getElementById('rotateCarouselGo');
+                const progress = Math.round((data.step_counter / 24000) * 100);
+                button.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Scanning... ${progress}%`;
+            }
+        })
+        .catch(error => {
+            console.error('Error checking scan progress:', error);
+        });
+    }
+
+    function recordVideoCam1() {
+
+        const button = document.getElementById('recordVideoCam1');
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Rotating and Recording...';
+
+        fetch('/rotateAndRecord', {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success message
+                //alert('Images captured successfully!');
+            } else {
+                alert('Error rotating carousel: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error rotating carousel');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-sync me-2"></i>Record Camera 1';
+        });
+    }
+
+    function soundBuzzer() {
+
+        const button = document.getElementById('soundBuzzer');
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Buzzing...';
+
+        fetch('/soundBuzzer', {
+            method: 'POST',
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error with buzzer');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-sync me-2"></i>Test Buzzer';
+        });
+    }
+
+    function openDiagnostics() {
+        window.open('/diagnostics', '_blank');
+    }
+</script>
+
+{% endblock %}

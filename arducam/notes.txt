@@ -1,0 +1,92 @@
+
+  # source venv/bin/activate
+# flask run --host=192.168.12.198 --port=5001
+
+sudo apt-get update
+
+sudo apt-get install python3-flask
+sudo apt install python3-pip
+pip install flask-socketio
+pip install RPi.GPIO
+pip install aiohttp
+
+
+pip freeze > requirements.txt
+pip install -r requirements.txt
+
+python -m venv venv
+python -m venv venv --system-site-packages # need this for libcamera in venv
+
+sudo lsof -i :5001
+sudo kill -9 12345
+
+
+http://192.168.12.198:5001/
+
+# Set to single channel 0
+i2cset -y 10 0x24 0x24 0x02
+# Set to single channel 1
+i2cset -y 10 0x24 0x24 0x12
+# Set to single channel 2
+i2cset -y 10 0x24 0x24 0x22
+# Set to single channel 3
+i2cset -y 10 0x24 0x24 0x32
+# Set to double channel (single channel 0 and single channel 1)
+i2cset -y 10 0x24 0x24 0x01
+# Set to double channel (single channel 2 and single channel 3)
+i2cset -y 10 0x24 0x24 0x11
+# Set to four in one mode (Default)
+i2cset -y 10 0x24 0x24 0x00
+
+libcamera-still -t 5000 -n -o test.jpg
+
+libcamera-still -t 5000 -n --autofocus-mode manual --lens-position 7.0 --shutter 50000 --gain 2.0 -o test.jpg
+libcamera-still -t 5000 -n --autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 2.0 -o test.jpg
+
+
+home main 192.168.12.198
+home slave 192.168.12.220
+
+work main 192.168.11.178
+work slave 192.168.11.148
+
+
+Driver settings:
+    if cam == 1:
+        cmd += "--autofocus-mode manual --lens-position 5.0 --shutter 50000 --gain 3.0 "
+    if cam == 6:
+        cmd += "--autofocus-mode manual --lens-position 6.5 --shutter 50000 --gain 3.5 "    
+    if cam == 7:
+        cmd += "--autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 3.5 "
+    # Add --vflip for camera 4
+    if cam == 8:
+        cmd += "--autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 3.5 "
+    if cam == 2:
+        cmd += "--autofocus-mode manual --lens-position 5.0 --shutter 50000 --gain 3.0 "
+    elif cam == 3:
+        cmd += "--autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 3.5 "    
+    elif cam == 4:
+        cmd += "--autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 3.5 "
+    elif cam == 5:
+        cmd += "--autofocus-mode manual --lens-position 6.5 --shutter 50000 --gain 3.5 "
+
+
+Iron settings: needs more cameras??
+    if cam == 1:
+        cmd += "--autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 2.0 "
+    if cam == 6:
+        cmd += "--autofocus-mode manual --lens-position 7.0 --shutter 50000 --gain 2.0 "    
+    if cam == 7:
+        cmd += "--autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 2.0 "
+    # Add --vflip for camera 4
+    if cam == 8:
+        cmd += "--autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 2.0 "    
+    if cam == 2:
+        cmd += "--autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 2.0 "
+    elif cam == 3:
+        cmd += "--autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 2.0 "    
+    elif cam == 4:
+        cmd += "--autofocus-mode manual --lens-position 5.5 --shutter 50000 --gain 2.0 "
+    elif cam == 5:
+        cmd += "--autofocus-mode manual --lens-position 6.5 --shutter 50000 --gain 2.0 "
+    
